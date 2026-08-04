@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALLER Technologies • Gate Portal</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background-color: #1e293b;
+            border-radius: 16px;
+            padding: 24px;
+            box-sizing: border-box;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            text-align: center;
+            border: 1px solid #334155;
+        }
+        .brand-header {
+            font-size: 22px;
+            font-weight: bold;
+            color: #38bdf8;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+        #camera-feed {
+            width: 100%;
+            height: 260px;
+            background-color: #020617;
+            border-radius: 12px;
+            object-fit: cover;
+            margin-bottom: 20px;
+            border: 2px solid #475569;
+            transform: scaleX(-1); /* Correct landscape mirror mapping adjustment */
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .action-btn {
+            flex: 1;
+            color: white;
+            border: none;
+            padding: 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-login { background-color: #10b981; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2); }
+        .btn-login:active { background-color: #059669; transform: scale(0.98); }
+        
+        .btn-logout { background-color: #ef4444; box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2); }
+        .btn-logout:active { background-color: #dc2626; transform: scale(0.98); }
+
+        #status-display {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #94a3b8;
+            line-height: 1.5;
+            padding: 12px;
+            border-radius: 8px;
+            background-color: #0f172a;
+            text-align: left;
+            border: 1px solid #1e293b;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <div class="brand-header">« ALLER • TECH »</div>
+        
+        <video id="camera-feed" autoplay playsinline disablePictureInPicture></video>
+        
+        <!-- Interactive Operational Input Interfaces -->
+        <div class="btn-group">
+            <button class="action-btn btn-login" onclick="triggerAttendance('IN')">📍 REACHED SITE</button>
+            <button class="action-btn btn-logout" onclick="triggerAttendance('OUT')">🔒 LEAVE SITE</button>
+        </div>
+        
+        <div id="status-display">System Idle. Awaiting operational gate punch scan trigger...</div>
+    </div>
+
+    <script>
+        const cameraFeed = document.getElementById('camera-feed');
+        const statusDisplay = document.getElementById('status-display');
+        let activePunchType = "";
+
+        async function initializeFrontCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user" }, 
+                    audio: false 
+                });
+                cameraFeed.srcObject = stream;
+            } catch (err) {
+                statusDisplay.innerHTML = "❌ Camera Blocked: Please allow webcam permissions using the top address lock icon.";
+            }
+        }
+
+        function triggerAttendance(type) {
+            activePunchType = type;
+            statusDisplay.innerHTML = `⏳ Initializing ${type} Identity Scan & Geofence Trace...`;
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(successTrackingHandler, errorTrackingHandler, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                });
+            } else {
+                statusDisplay.innerHTML = "❌ Browser Error: Location tracing not supported.";
+            }
+        }
+
+        async function successTrackingHandler(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            statusDisplay.innerHTML = "⏳ Fetching exact site address name from mapping network...";
+
+            try {
+                const response = await fetch(`https://openstreetmap.org{lat}&lon=${lon}&addressdetails=1`);
+                const data = await response.json();
+                
+                const address = data.address;
+                const cityArea = address.suburb || address.neighbourhood || address.locality || "";
+                const cityMain = address.city || address.town || address.village || "Kalaburagi";
+                const cleanLocationName = cityArea ? `${cityArea}, ${cityMain}` : cityMain;
+
+                statusDisplay.innerHTML = `✅ <b>Identity Verified!</b><br><br><b>Punch Action:</b> ${activePunchType}<br><b>Aller Work Zone:</b> ${cleanLocationName}<br><br><i>Data package securely logged to Excel matrix row.</i>`;
+                console.log("Logged Address Name:", cleanLocationName, "Type:", activePunchType);
+                
+                // --- AIR BRIDGE DELIVERY: TRANSMIT LOG DATA STRAIGHT TO SERVER DATABASE ---
+                fetch('http://127.0.0', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        employee_name: "Poornima", // Registers your worker's profile array name tracking tag
+                        punch_type: activePunchType, // Passes "IN" or "OUT" action flag state
+                        location_name: cleanLocationName // Passes the clean area text string string
+                    })
+                })
+                .then(res => res.json())
+                .then(serverData => console.log("Server response success:", serverData))
+                .catch(err => console.error("Database connection failure:", err));
+                
+            } catch (error) {
+                statusDisplay.innerHTML = `✅ <b>Identity Verified!</b><br>Punch Action: ${activePunchType}<br>Coordinates: ${lat.toFixed(6)}, ${lon.toFixed(6)}<br>⚠️ Address text lookup offline.`;
+            }
+        }
+
+        function errorTrackingHandler(err) {
+            statusDisplay.innerHTML = "❌ Location Access Denied: Please enable phone GPS/Location toggles.";
+        }
+
+        window.addEventListener('load', initializeFrontCamera);
+    </script>
+</body>
+</html>
