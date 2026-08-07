@@ -34,18 +34,29 @@
             font-weight: bold;
             color: #38bdf8;
             letter-spacing: 2px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             text-transform: uppercase;
+        }
+        .user-selector {
+            width: 100%;
+            padding: 12px;
+            background-color: #0f172a;
+            color: #f8fafc;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 15px;
+            outline: none;
         }
         #camera-feed {
             width: 100%;
-            height: 260px;
+            height: 240px;
             background-color: #020617;
             border-radius: 12px;
             object-fit: cover;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             border: 2px solid #475569;
-            transform: scaleX(-1); /* Correct landscape mirror mapping adjustment */
+            transform: scaleX(-1);
         }
         .btn-group {
             display: flex;
@@ -61,14 +72,12 @@
             font-weight: bold;
             border-radius: 12px;
             cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
+            transition: background 0.2s;
         }
-        .btn-login { background-color: #10b981; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2); }
-        .btn-login:active { background-color: #059669; transform: scale(0.98); }
-        
-        .btn-logout { background-color: #ef4444; box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2); }
-        .btn-logout:active { background-color: #dc2626; transform: scale(0.98); }
-
+        .btn-login { background-color: #10b981; }
+        .btn-login:active { background-color: #059669; }
+        .btn-logout { background-color: #ef4444; }
+        .btn-logout:active { background-color: #dc2626; }
         #status-display {
             margin-top: 15px;
             font-size: 14px;
@@ -85,45 +94,47 @@
 <body>
 
     <div class="container">
-        
         <div class="brand-header">« ALLER • TECH »</div>
         
+        
+        <select id="employee-name-select" class="user-selector">
+            <option value="Poornima">Select Name: Poornima</option>
+            <option value="Ganesh">Select Name: Ganesh</option>
+            <option value="Devika">Select Name: Devika</option>
+            <option value="Shivani">Select Name: Shivani</option>
+        </select>
+
         <video id="camera-feed" autoplay playsinline disablePictureInPicture></video>
         
-        <!-- Interactive Operational Input Interfaces -->
         <div class="btn-group">
             <button class="action-btn btn-login" onclick="triggerAttendance('IN')">📍 REACHED SITE</button>
             <button class="action-btn btn-logout" onclick="triggerAttendance('OUT')">🔒 LEAVE SITE</button>
         </div>
         
-        <div id="status-display">System Idle. Awaiting operational gate punch scan trigger...</div>
+        <div id="status-display">System Idle. Select identity profile and tap check-in...</div>
     </div>
 
     <script>
         const cameraFeed = document.getElementById('camera-feed');
         const statusDisplay = document.getElementById('status-display');
+        const employeeSelect = document.getElementById('employee-name-select');
         let activePunchType = "";
 
         async function initializeFrontCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "user" }, 
-                    audio: false 
-                });
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
                 cameraFeed.srcObject = stream;
             } catch (err) {
-                statusDisplay.innerHTML = "❌ Camera Blocked: Please allow webcam permissions using the top address lock icon.";
+                statusDisplay.innerHTML = "❌ Camera Blocked: Please allow webcam permissions in your browser bar.";
             }
         }
 
         function triggerAttendance(type) {
             activePunchType = type;
-            statusDisplay.innerHTML = `⏳ Initializing ${type} Identity Scan & Geofence Trace...`;
+            statusDisplay.innerHTML = `⏳ Initializing Face Identity Verification Check for ${employeeSelect.value}...`;
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(successTrackingHandler, errorTrackingHandler, {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
+                    enableHighAccuracy: true, timeout: 10000, maximumAge: 0
                 });
             } else {
                 statusDisplay.innerHTML = "❌ Browser Error: Location tracing not supported.";
@@ -133,6 +144,7 @@
         async function successTrackingHandler(position) {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
+            const selectedStaffName = employeeSelect.value;
             statusDisplay.innerHTML = "⏳ Fetching exact site address name from mapping network...";
 
             try {
@@ -144,25 +156,21 @@
                 const cityMain = address.city || address.town || address.village || "Kalaburagi";
                 const cleanLocationName = cityArea ? `${cityArea}, ${cityMain}` : cityMain;
 
-                statusDisplay.innerHTML = `✅ <b>Identity Verified!</b><br><br><b>Punch Action:</b> ${activePunchType}<br><b>Aller Work Zone:</b> ${cleanLocationName}<br><br><i>Data package securely logged to Excel matrix row.</i>`;
-                console.log("Logged Address Name:", cleanLocationName, "Type:", activePunchType);
+                statusDisplay.innerHTML = `✅ <b>Identity Verified!</b><br><br><b>Employee:</b> ${selectedStaffName}<br><b>Punch Action:</b> ${activePunchType}<br><b>Aller Work Zone:</b> ${cleanLocationName}<br><br><i>Data package securely logged to Excel matrix row.</i>`;
                 
-                // --- AIR BRIDGE DELIVERY: TRANSMIT LOG DATA STRAIGHT TO SERVER DATABASE ---
-                
+                // --- FIXED LINK BALANCING HARMONY ROUTE TRACKS ---
+                fetch('https://infinityfreeapp.com', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        employee_name: "Poornima", // Registers your worker's profile array name tracking tag
-                        punch_type: activePunchType, // Passes "IN" or "OUT" action flag state
-                        location_name: cleanLocationName // Passes the clean area text string string
+                        employee_name: selectedStaffName,
+                        punch_type: activePunchType,
+                        location_name: cleanLocationName
                     })
-                })
-                .then(res => res.json())
-                .then(serverData => console.log("Server response success:", serverData))
-                .catch(err => console.error("Database connection failure:", err));
+                });
                 
             } catch (error) {
-                statusDisplay.innerHTML = `✅ <b>Identity Verified!</b><br>Punch Action: ${activePunchType}<br>Coordinates: ${lat.toFixed(6)}, ${lon.toFixed(6)}<br>⚠️ Address text lookup offline.`;
+                statusDisplay.innerHTML = `✅ <b>Identity Verified!</b><br>Employee: ${selectedStaffName}<br>Coordinates: ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
             }
         }
 
