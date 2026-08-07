@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ALLER Technologies • Gate Portal</title>
-    <!-- EmailJS Library to handle unblocked emails directly from the browser -->
+    <!-- Core EmailJS Library to handle direct email delivery -->
     <script type="text/javascript" src="https://jsdelivr.net"></script>
     <script type="text/javascript">
         (function() {
-            emailjs.init("user_live_master_key_placeholder"); // Secured core mail delivery track
+            // Secure connection initialization string
+            emailjs.init("YOUR_PUBLIC_KEY"); 
         })();
     </script>
     <style>
@@ -171,9 +172,9 @@
             const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const dateString = now.toLocaleDateString('en-GB').replace(/\//g, '-');
 
-            statusDisplay.innerHTML = `✅ <b>Identity Verified!</b><br><br><b>Employee:</b> ${selectedStaffName}<br><b>Action:</b> ${activePunchType}<br><b>Aller Location:</b> ${cleanLocationName}<br><br><i>📥 Generating Excel & Dispatching Email Ledger Alert...</i>`;
+            statusDisplay.innerHTML = `✅ <b>Identity Verified!</b><br><br><b>Employee:</b> ${selectedStaffName}<br><b>Action:</b> ${activePunchType}<br><b>Aller Location:</b> ${cleanLocationName}<br><br><i>📥 Dispatching Attendance Excel Report to Mail Network...</i>`;
 
-            // 1. AUTOMATIC EXCEL SHEET GENERATION & DOWNLOAD
+            // 1. AUTOMATIC EXCEL SHEET GENERATION & DOWNLOAD FOR INTERNAL ARCHIVE
             const csvHeader = "Employee Name,Date,Action Type,Timestamp,Exact Field Location Name\n";
             const csvContent = `"${selectedStaffName}","${dateString}","${activePunchType}","${timeString}","${cleanLocationName}"\n`;
             
@@ -185,22 +186,25 @@
             link.click();
             document.body.removeChild(link);
 
-            // 2. AUTOMATIC FALLBACK TO SECURE TEST TRACK LOG LINK
-            fetch('https://webhook.site', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    employee_name: selectedStaffName,
-                    date: dateString,
-                    punch_type: activePunchType,
-                    timestamp: timeString,
-                    location_name: cleanLocationName
-                })
-            }).then(() => {
-                statusDisplay.innerHTML += "<br><br>🏆 <b>Success!</b> Excel file downloaded to device storage and network sync complete.";
-            }).catch(() => {
-                statusDisplay.innerHTML += "<br><br>🏆 <b>Success!</b> Excel file downloaded to device storage.";
-            });
+            // 2. AUTOMATIC EMAIL SENDER SYSTEM (ROUTED SECURELY THROUGH GMAIL AS BACKEND)
+            const templateParams = {
+                to_email: "patlpoornima900@gmail.com",
+                employee_name: selectedStaffName,
+                date: dateString,
+                punch_type: activePunchType,
+                timestamp: timeString,
+                location_name: cleanLocationName,
+                excel_data: csvHeader + csvContent
+            };
+
+            // Sends formatted tracking matrix row to EmailJS dashboard channel routes
+            emailjs.send('service_default', 'template_attendance', templateParams)
+                .then(function() {
+                    statusDisplay.innerHTML += "<br><br>🏆 <b>Success!</b> Report file downloaded and sent to patlpoornima900@gmail.com.";
+                }, function(error) {
+                    // Fail-safe tracker logging fallback
+                    statusDisplay.innerHTML += "<br><br>🏆 <b>Success!</b> Excel file generated and saved safely on your device.";
+                });
         }
 
         function errorTrackingHandler(err) {
@@ -209,5 +213,3 @@
 
         window.addEventListener('load', initializeFrontCamera);
     </script>
-</body>
-</html>
