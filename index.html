@@ -157,14 +157,19 @@
             let cleanLocationName = "Kalaburagi, Karnataka";
             try {
                 const response = await fetch(`https://openstreetmap.org{lat}&lon=${lon}&zoom=18&addressdetails=1`, {
-                    headers: { 'User-Agent': 'AllerTechTrackingEngine/4.0' }
+    headers: { 
+        'User-Agent': 'AllerTechnologiesCorporateGateSystemMicroLocationEngine/5.0_Poornima',
+        'Accept-Language': 'en'
+    }
+});
                 });
                 const data = await response.json();
                 if (data && data.address) {
                     const address = data.address;
-                    const cityArea = address.suburb || address.neighbourhood || address.locality || "";
-                    const cityMain = address.city || address.town || address.village || "Kalaburagi";
-                    cleanLocationName = cityArea ? `${cityArea}, ${cityMain}` : cityMain;
+                    const buildingName = address.building || address.amenity || address.shop || "";
+const streetName = address.road || address.suburb || address.neighbourhood || "";
+const areaName = address.residential || address.commercial || address.county || "";
+const cleanLocationName = [buildingName, streetName, areaName].filter(Boolean).join(", ") || "Gulbarga Work Site";
                 }
             } catch (error) {}
 
