@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIKZAN Tech • Gate Portal</title>
+    <style>
+        /* CSS LAYOUT STYLING - Optimized to look beautiful on mobile touchscreens under bright sunlight */
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background-color: #1e293b;
+            border-radius: 16px;
+            padding: 24px;
+            box-sizing: border-box;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            text-align: center;
+            border: 1px solid #334155;
+        }
+
+        .brand-header {
+            font-size: 22px;
+            font-weight: bold;
+            color: #38bdf8;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        #camera-feed {
+            width: 100%;
+            height: 260px;
+            background-color: #020617;
+            border-radius: 12px;
+            object-fit: cover;
+            margin-bottom: 20px;
+            border: 2px solid #475569;
+            transform: scaleX(-1); /* Flips the lens stream horizontally so it acts like a natural mirror */
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .action-btn {
+            flex: 1;
+            color: white;
+            border: none;
+            padding: 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn-login { background-color: #10b981; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2); }
+        .btn-login:active { background-color: #059669; transform: scale(0.98); }
+        
+        .btn-logout { background-color: #ef4444; box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2); }
+        .btn-logout:active { background-color: #dc2626; transform: scale(0.98); }
+
+        #status-display {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #94a3b8;
+            line-height: 1.5;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #0f172a;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Your Secret Industrial Corporate Brand Banner Display -->
+        <div class="brand-header">« RIKZAN • Tech »</div>
+        
+        <!-- Live Mobile Selfie Verification Window Screen View -->
+        <video id="camera-feed" autoplay playsinline></video>
+        
+        <!-- Interactive Operational Input Touch Targets (IN/OUT) -->
+        <div class="btn-group">
+            <button class="action-btn btn-login" onclick="triggerAttendanceSequence('Check-In')">📍 REACHED SITE</button>
+            <button class="action-btn btn-logout" onclick="triggerAttendanceSequence('Check-Out')">🔒 LEAVE SITE</button>
+        </div>
+        
+        <div id="status-display">System Idle. Awaiting site destination arrival scan trigger...</div>
+    </div>
+
+    <script>
+        const cameraFeed = document.getElementById('camera-feed');
+        const statusDisplay = document.getElementById('status-display');
+        let activePunchType = "";
+
+        // ⚠️ PASTE YOUR COPIED GOOGLE WEB APP URL BETWEEN THE QUOTES BELOW:
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbygIFKZn9UG1pwMGyyzF2vZRzAQsaxlJ-tXKhJIk21qCdcPThusQ5upvV_z9SuOYwkrXQ/exec";
+
+        // Automatically fire up the front selfie camera when the page mounts on Chrome/Safari
+        async function initializeFrontCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user" }, // Forces front selfie lens execution path 
+                    audio: false 
+                });
+                cameraFeed.srcObject = stream;
+            } catch (err) {
+                statusDisplay.innerHTML = "❌ Camera Error: Please allow camera access permissions inside your mobile browser settings.";
+            }
+        }
+
+        function triggerAttendanceSequence(type) {
+            activePunchType = type;
+            statusDisplay.innerHTML = `⏳ Initializing ${type} Identity Scan & Geofence Trace...`;
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(successTrackingHandler, errorTrackingHandler, {
+                    enableHighAccuracy: true, 
+                    timeout: 10000,
+                    maximumAge: 0
+                });
+            } else {
+                statusDisplay.innerHTML = "❌ Browser Error: Geolocation tracking is not supported by your phone browser.";
+            }
+        }
+
+        async function successTrackingHandler(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            statusDisplay.innerHTML = "⏳ Fetching exact site address name from mapping network...";
+
+            let cleanLocationName = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+
+            try {
+                // Reverse geocodes the coordinates to a real address string via OpenStreetMap API
+                const response = await fetch(`https://openstreetmap.org{lat}&lon=${lon}&addressdetails=1`);
+                const data = await response.json();
+                
+                if (data && data.address) {
+                    const address = data.address;
+                    const cityArea = address.suburb || address.neighbourhood || address.locality || "";
+                    const cityMain = address.city || address.town || address.village || "Kalaburagi";
+                    cleanLocationName = cityArea ? `${cityArea}, ${cityMain}` : cityMain;
+                }
+            } catch (error) {
+                console.log("Address text lookup offline, falling back to raw coordinates.");
+            }
+
+            statusDisplay.innerHTML = `✅ <b>Identity Verified!</b><br><br><b>Punch Action:</b> ${activePunchType}<br><b>Work Zone:</b> ${cleanLocationName}<br><br><i>Syncing data package securely...</i>`;
+            
+            // Format data package with URL form parameters to easily clear browser restrictions
+            const urlPayload = new URLSearchParams();
+            urlPayload.append('id', 'EMP-FIELD-01');
+            urlPayload.append('name', 'Poornima');
+            urlPayload.append('type', 'Field');
+            urlPayload.append('status', activePunchType);
+            urlPayload.append('location', cleanLocationName);
+
+            // AIR BRIDGE DELIVERY: Pushes text data packet straight to your Google Sheet
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                body: urlPayload
+            })
+            .then(() => {
+                statusDisplay.innerHTML = `✅ <b>Identity Verified!</b><br><br><b>Punch Action:</b> ${activePunchType}<br><b>Work Zone:</b> ${cleanLocationName}<br><br><span style="color:#10b981;"><i>Data package successfully logged to Cloud Matrix row!</i></span>`;
+            })
+            .catch(err => {
+                statusDisplay.innerHTML = `❌ <b>Database Network Timeout</b><br>Could not record your attendance log.`;
+                console.error("Database connection failure:", err);
+            });
+        }
+
+        function errorTrackingHandler(err) {
+            statusDisplay.innerHTML = "❌ Location Access Denied: You must enable your mobile phone Location/GPS toggle switch to complete the check-in.";
+        }
+
+        // Boot camera lens loop instantly upon document load matching
+        window.addEventListener('load', initializeFrontCamera);
+    </script>
+</body>
+</html>
